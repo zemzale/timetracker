@@ -9,6 +9,8 @@
 #include <ostream>
 #include <string>
 
+#include "db.h"
+
 // Get the value of XDG_DATA_HOME or fallback to ~/.local/share
 std::string getXdgDataHome() {
   const char *xdg = std::getenv("XDG_DATA_HOME");
@@ -27,26 +29,6 @@ std::string getDatabaseFile() { return getDataDirectory() + "/timetracker.db"; }
 
 // Create a directory if it does not exist
 bool createDirectory(const std::string &path) { return (mkdir(path.c_str(), 0755) == 0 || errno == EEXIST); }
-
-// Initialize the database (create the tasks table if it doesn't exist)
-bool initializeDatabase(sqlite3 *db) {
-  const char *sqlCreate =
-      "CREATE TABLE IF NOT EXISTS tasks ("
-      " id INTEGER PRIMARY KEY AUTOINCREMENT,"
-      " task_id TEXT NOT NULL,"
-      " start_time INTEGER NOT NULL,"
-      " stop_time INTEGER,"
-      " duration REAL"
-      ");";
-  char *errMsg = nullptr;
-  int rc = sqlite3_exec(db, sqlCreate, nullptr, nullptr, &errMsg);
-  if (rc != SQLITE_OK) {
-    std::cerr << "Error creating table: " << errMsg << "\n";
-    sqlite3_free(errMsg);
-    return false;
-  }
-  return true;
-}
 
 // Start tracking a task with the given taskId
 void startTracking(sqlite3 *db, const std::string &taskId) {
@@ -181,16 +163,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Open SQLite database
-  std::string dbFile = getDatabaseFile();
-  sqlite3 *db = nullptr;
-  int rc = sqlite3_open(dbFile.c_str(), &db);
-  if (rc) {
-    std::cerr << "Can't open database: " << sqlite3_errmsg(db) << "\n";
-    return 1;
-  }
+  sqlite3 *db = connect_to_db(getDatabaseFile());
 
-  if (!initializeDatabase(db)) {
+  if (!init_db(db)) {
     sqlite3_close(db);
     return 1;
   }
