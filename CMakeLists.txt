@@ -10,7 +10,7 @@ if(NOT SQLite3_FOUND)
   message(FATAL_ERROR "SQLite3 not found. Please install libsqlite3-dev.")
 endif()
 
-add_executable(timetracker db.cpp main.cpp)
+add_executable(timetracker db.cpp time.cpp main.cpp)
 
 target_include_directories(timetracker PUBLIC ${SQLite3_INCLUDE_DIRS})
 target_link_libraries(timetracker ${SQLite3_LIBRARIES})
